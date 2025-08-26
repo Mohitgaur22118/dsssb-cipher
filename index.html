@@ -457,9 +457,10 @@
                  <div>
                     <button class="btn btn-danger" onclick="deleteSelected()">Delete Selected</button>
                     <button class="btn btn-danger" onclick="deleteAll()">Delete All</button>
-                    <input type="file" id="csvFileInput" class="hidden" accept=".csv">
+                    <input type="file" id="csvFileInput" style="display: none;" accept=".csv">
                     <button class="btn btn-tertiary" onclick="document.getElementById('csvFileInput').click()">Import CSV</button>
-                    <button class="btn btn-secondary" onclick="exportData()">Export to CSV</button>
+                    <button class="btn btn-secondary" onclick="exportData()">Export All to CSV</button>
+                    <button class="btn btn-secondary" onclick="exportFilteredData()">Export Filtered to CSV</button>
                 </div>
             </div>
             <div class="filter-container">
@@ -547,6 +548,7 @@
     </div>
 
     <script>
+    // In-memory representation of the DSSSB syllabus structure.
     const syllabusStructure = {
         "Section A": {
             "General Awareness": {
@@ -909,32 +911,84 @@
         updateAllFilterOptions();
     }
 
+    // Helper function to convert an array of objects to a CSV string
+    function convertToCSV(data) {
+        if (data.length === 0) return '';
+        const headers = ['Paper Number', 'Question Number', 'Section', 'Subject', 'Topic', 'Subtopic', 'Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer'];
+        const rows = data.map(q => {
+            // Function to safely wrap a value in quotes for CSV
+            const escapeCSV = (val) => {
+                if (val === undefined || val === null) return '';
+                const str = String(val);
+                // If the string contains a comma, a double quote, or a newline, wrap it in double quotes.
+                // Also, double up any existing double quotes.
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+            
+            return [
+                escapeCSV(q.paperNumber),
+                escapeCSV(q.questionNumber),
+                escapeCSV(q.section),
+                escapeCSV(q.subject),
+                escapeCSV(q.topic),
+                escapeCSV(q.subtopic),
+                escapeCSV(q.questionText),
+                escapeCSV(q.options.a),
+                escapeCSV(q.options.b),
+                escapeCSV(q.options.c),
+                escapeCSV(q.options.d),
+                escapeCSV(q.correctAnswer)
+            ].join(',');
+        });
+
+        return [headers.join(','), ...rows].join('\n');
+    }
+
+    // Helper function to trigger the download of a CSV file
+    function downloadCSV(csvContent, filename) {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Exports all questions to CSV
     function exportData() {
         if (questionsData.length === 0) {
             alert('No data to export!');
             return;
         }
-        const headers = ['Paper Number', 'Question Number', 'Section', 'Subject', 'Topic', 'Subtopic', 'Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer'];
-        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+        try {
+            const csvContent = convertToCSV(questionsData);
+            downloadCSV(csvContent, 'dsssb_exam_analysis_full.csv');
+        } catch (error) {
+            console.error('Error exporting all data:', error);
+            alert('An error occurred while exporting all questions. Please check the console for details.');
+        }
+    }
 
-        questionsData.forEach(q => {
-            const row = [
-                q.paperNumber, q.questionNumber, q.section, q.subject, q.topic, 
-                `"${q.subtopic.replace(/"/g, '""')}"`, `"${q.questionText.replace(/"/g, '""')}"`,
-                `"${(q.options.a || '').replace(/"/g, '""')}"`, `"${(q.options.b || '').replace(/"/g, '""')}"`, 
-                `"${(q.options.c || '').replace(/"/g, '""')}"`, `"${(q.options.d || '').replace(/"/g, '""')}"`,
-                `"${q.correctAnswer.replace(/"/g, '""')}"`
-            ];
-            csvContent += row.join(",") + "\n";
-        });
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "dsssb_exam_analysis_full.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Exports only the currently filtered questions to CSV
+    function exportFilteredData() {
+        const filteredData = getFilteredData();
+        if (filteredData.length === 0) {
+            alert('No filtered data to export! Try adjusting your filters.');
+            return;
+        }
+        try {
+            const csvContent = convertToCSV(filteredData);
+            downloadCSV(csvContent, 'dsssb_exam_analysis_filtered.csv');
+        } catch (error) {
+            console.error('Error exporting filtered data:', error);
+            alert('An error occurred while exporting filtered questions. Please check the console for details.');
+        }
     }
     
     function importData(event) {
@@ -1134,3 +1188,4 @@
     </script>
 </body>
 </html>
+
