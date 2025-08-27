@@ -844,7 +844,9 @@
         const searchFilter = document.getElementById('searchQNum').value;
 
         return questionsData.filter(q => {
-            const paperMatch = !paperFilter || q.paperNumber === paperFilter;
+            // FIX: Changed strict equality (===) to loose equality (==) for paperNumber.
+            // This handles cases where one value is a number (e.g., 12) and the other is a string (e.g., "12").
+            const paperMatch = !paperFilter || q.paperNumber == paperFilter;
             const sectionMatch = !sectionFilter || q.section === sectionFilter;
             const subjectMatch = !subjectFilter || q.subject === subjectFilter;
             const topicMatch = !topicFilter || q.topic === topicFilter;
@@ -1188,4 +1190,3 @@
     </script>
 </body>
 </html>
-
