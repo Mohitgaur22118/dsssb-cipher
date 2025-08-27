@@ -841,16 +841,22 @@
         const subjectFilter = filterSubjectSelect.value;
         const topicFilter = filterTopicSelect.value;
         const subtopicFilter = filterSubtopicSelect.value;
-        const searchFilter = document.getElementById('searchQNum').value;
+        const searchFilter = document.getElementById('searchQNum').value.trim();
 
         return questionsData.filter(q => {
+            // Trim data fields before comparison to be resilient to whitespace in imported data.
+            const qSection = q.section ? q.section.trim() : '';
+            const qSubject = q.subject ? q.subject.trim() : '';
+            const qTopic = q.topic ? q.topic.trim() : '';
+            const qSubtopic = q.subtopic ? q.subtopic.trim() : '';
+
             // FIX: Changed strict equality (===) to loose equality (==) for paperNumber.
             // This handles cases where one value is a number (e.g., 12) and the other is a string (e.g., "12").
             const paperMatch = !paperFilter || q.paperNumber == paperFilter;
-            const sectionMatch = !sectionFilter || q.section === sectionFilter;
-            const subjectMatch = !subjectFilter || q.subject === subjectFilter;
-            const topicMatch = !topicFilter || q.topic === topicFilter;
-            const subtopicMatch = !subtopicFilter || q.subtopic === subtopicFilter;
+            const sectionMatch = !sectionFilter || qSection === sectionFilter;
+            const subjectMatch = !subjectFilter || qSubject === subjectFilter;
+            const topicMatch = !topicFilter || qTopic === topicFilter;
+            const subtopicMatch = !subtopicFilter || qSubtopic === subtopicFilter;
             const searchMatch = !searchFilter || q.questionNumber.toString().includes(searchFilter);
             return paperMatch && sectionMatch && subjectMatch && topicMatch && subtopicMatch && searchMatch;
         });
