@@ -101,6 +101,7 @@
             margin-bottom: 8px;
             font-weight: 600;
             color: #2c3e50;
+            font-size: 0.9rem;
         }
         .form-group input, .form-group select, .form-group textarea {
             padding: 12px 15px;
@@ -147,13 +148,21 @@
         .btn-secondary:hover {
             box-shadow: 0 8px 25px rgba(39, 174, 96, 0.4);
         }
-         .btn-tertiary {
+        .btn-tertiary {
             background: linear-gradient(135deg, #f39c12, #e67e22);
             box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
             margin-left: 10px;
         }
         .btn-tertiary:hover {
             box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
+        }
+        .btn-info {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.3);
+            margin-left: 10px;
+        }
+        .btn-info:hover {
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4);
         }
         .table-container {
             background: rgba(255, 255, 255, 0.95);
@@ -348,6 +357,11 @@
             .container { padding: 10px; }
             .header h1 { font-size: 1.8rem; }
             .form-grid { grid-template-columns: 1fr; }
+            .table-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -457,6 +471,7 @@
                  <div>
                     <button class="btn btn-danger" onclick="deleteSelected()">Delete Selected</button>
                     <button class="btn btn-danger" onclick="deleteAll()">Delete All</button>
+                    <button class="btn btn-info" onclick="copyMetadata()">Copy Metadata</button>
                     <input type="file" id="csvFileInput" style="display: none;" accept=".csv">
                     <button class="btn btn-tertiary" onclick="document.getElementById('csvFileInput').click()">Import CSV</button>
                     <button class="btn btn-secondary" onclick="exportData()">Export All to CSV</button>
@@ -575,12 +590,12 @@
                 "SOURCES OF ENERGY": ["Different forms of Energy", "Leading to different sources for human use: Fossil Fuels, solar energy", "Biogas", "Wind", "Water and Tidal Energy", "Nuclear Energy", "Renewable versus non-renewable sources"],
                 "MOTION: FORCE AND NEWTON'S LAWS": ["Displacement, Velocity, uniform & non-uniform motion", "acceleration distance-time and velocity", "Time graphs for uniform and uniformly accelerated motion", "Equations of motion by graphical method", "Elementary idea of uniform circular motion", "Force and Motion", "Newton's laws of motion Inertia of a body", "Inertia and Mass, Momentum Force and acceleration", "Elementary idea of conservation of momentum, Action and Reaction forces"],
                 "GRAVITATION: WORK, ENERGY AND POWER": ["Gravitation", "Universal Law of Gravitation", "Force of gravitation of the earth gravity, acceleration due to gravity", "mass and weight", "free fall", "Work done by a force energy, power", "Kinetic and Potential energy", "law of conservation of energy"],
-                "FLOATATION": ["Thrust and Pressure, Archimedes Principle, Buoyancy", "Elementary idea of relative density"],
+                "FLOATATION": ["Thrust and Pressure", "Archimedes Principle", "Buoyancy", "Elementary idea of relative density"],
                 "SOUND": ["Nature of Sound and its Propagation in various media, Speed of Sound", "Range of hearing in Humans", "Ultra Sound, Reflection of sound", "Echo and SONAR", "Structure of the Human Ear (Auditory aspect only)"]
             },
             "Chemistry": {
                 "MATTER-NATURE AND BEHAVIOUR": ["Gases, liquids, solids, plasma and Bose-Enstein condenstate", "types of intermolecular forces", "Classification of matter into mixures and pure substances", "Henry's Law", "Concentration of solutions", "Colloids-phases of colloids, Tyndall effect, Brownian movement", "Suspension", "Properties of matter", "Measurement of properties of matter-S.I. system of units", "physical and chemical changes", "Laws of chemical combination Gay Lussac's law, Avogadro law", "atomic and molecular masses, average atomic. mass, mole concept and molar masses, percentage compostion"],
-                "STRUCTURE OF ATOM": ["Dalton's atomic theory, Discharge tube experiments", "J3 Thomson's model of atom, Rutherford's model, Bohr's model of atom", "electronic configuration, formation of ions", "Characterisation of elements as metals, metalloids, or nonmetals", "isotopes (their applications), isobars and isotones"],
+                "STRUCTURE OF ATOM": ["Dalton's atomic theory, Discharge tube experiments", "J.J. Thomson's model of atom, Rutherford's model, Bohr's model of atom", "electronic configuration, formation of ions", "Characterisation of elements as metals, metalloids, or nonmetals", "isotopes (their applications), isobars and isotones"],
                 "PERIODIC CLASSIFICATION OF ELEMENTS": ["Mendeleev's periodic law", "Periodic properties of elements, trends in the periods and groups", "Improtance of the periodic table, position of hydrogen in the periodic table"],
                 "CHEMICAL SUBSTANCES": ["Nature and behaviour Acid, Basis and Salts", "Classical definition of acids and bases, Bronsted-Lowry theory, Lewis conceipt of acid and bases", "relative.strengths of acids and bases, logarithmic or p scale-pH,pOH and pkw, ionic equilibria in a solution", "Action of indicators on acids and bases, sources of acid and bases", "SaltClassification of salts and their pH"],
                 "CHEMICAL REACTIONS": ["Formulation of chemical equations, balancing chemical equations", "Types of chemical equations with examples"],
@@ -903,6 +918,94 @@
             updateStats();
             updateAllFilterOptions();
         }
+    }
+
+    function copyMetadata() {
+        const selectedIds = [...document.querySelectorAll('.row-selector:checked')].map(cb => cb.dataset.id);
+        if (selectedIds.length === 0) {
+            alert('Please select questions to copy metadata.');
+            return;
+        }
+
+        const selectedQuestions = questionsData.filter(q => selectedIds.includes(`${q.paperNumber}-${q.questionNumber}`));
+        
+        // Create the NotebookLM prompt
+        let metadataText = `Go through the selected source carefully. Based on the metadata (which comes from past year DSSSB exam paper analysis) and the question text (which contains actual previous exam questions), generate 10 most important questions that are most likely to appear in future exams.
+
+
+🔹 Your Task:
+
+Analyze the metadata + question text.
+
+Identify the most exam-relevant questions.
+
+Present them in the flashcard format shown below.
+
+
+📘 Flashcard Creation Instructions
+
+Input: Educational text (paragraph, notes, or previous question).
+Processing: Read line by line.
+Output: For each line, generate multiple-choice flashcards with:
+
+One question (Q:)
+
+Four answer choices (A, B, C, D)
+
+The correct answer marked at the end with |
+
+
+📑 Flashcard Format Example
+
+Input Line:
+We can tell something is alive if it moves on its own.
+
+Flashcards Output:
+
+Q: How do we tell the difference between what is alive and what is not alive?
+A. By their size
+B. By their color
+C. By their movement
+D. By their sound | C. By their movement
+
+
+🛠 Rules You Must Follow
+
+Generate 10 most important exam questions (not explanations).
+
+Only one correct option per question.
+
+Options should be slightly confusing but with one correct answer.
+
+Stay within the subject, topic, and subtopic mentioned in the metadata.
+
+Now, based on the following metadata and question text, generate the output:
+
+
+`;
+
+        // Add metadata for each selected question
+        selectedQuestions.forEach((q, index) => {
+            metadataText += `--- Metadata Example ${index + 1} ---\n`;
+            metadataText += `Paper: ${q.paperNumber}\n`;
+            metadataText += `Question #: ${q.questionNumber}\n`;
+            metadataText += `Section: ${q.section}\n`;
+            metadataText += `Subject: ${q.subject}\n`;
+            metadataText += `Topic: ${q.topic}\n`;
+            metadataText += `Subtopic: ${q.subtopic}\n`;
+            metadataText += `Question: ${q.questionText}\n`;
+            metadataText += `Correct Answer: ${q.correctAnswer}\n\n`;
+        });
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(metadataText)
+            .then(() => {
+                alert(`Metadata for ${selectedQuestions.length} questions copied to clipboard with NotebookLM prompt!`);
+            })
+            .catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy metadata to clipboard. Please check console for details.');
+            });
     }
 
     function saveData() {
